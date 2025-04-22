@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class AuthForm extends StatefulWidget {
   final void Function(String email) onLoginSuccess;
+
   const AuthForm({super.key, required this.onLoginSuccess});
 
   @override
@@ -11,77 +12,24 @@ class AuthForm extends StatefulWidget {
 class _AuthFormState extends State<AuthForm> {
   final _formKey = GlobalKey<FormState>();
   bool _isLogin = true;
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
-  String _email = '';
-  String _password = '';
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
-  final Map<String, String> _userDatabase = {};
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   void _trySubmit() {
-    final isValid = _formKey.currentState?.validate() ?? false;
+    final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
-    _formKey.currentState?.save();
 
-    if (_isLogin) {
-      if (_userDatabase.containsKey(_email)) {
-        if (_userDatabase[_email] == _password) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login successful!')),
-          );
-          widget.onLoginSuccess(_email);
-        } else {
-          _showErrorDialog('Incorrect password. Please try again.');
-          setState(() {
-            _isLogin = false;
-          });
-        }
-      } else {
-        _showErrorDialog('User not found. Please register first.');
-        setState(() {
-          _isLogin = false;
-        });
-      }
-    } else {
-      if (_userDatabase.containsKey(_email)) {
-        _showErrorDialog('User already exists. Please login.');
-        setState(() {
-          _isLogin = true;
-        });
-      } else {
-        _userDatabase[_email] = _password;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Registration successful! Please login.')),
-        );
-        setState(() {
-          _isLogin = true;
-        });
-      }
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    final email = _emailController.text.trim();
+    widget.onLoginSuccess(email);
   }
 
   @override
   void dispose() {
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -89,154 +37,160 @@ class _AuthFormState extends State<AuthForm> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 600;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final headingStyle = TextStyle(
-      fontFamily: 'Coolvetica',
-      fontSize: 32,
-      fontWeight: FontWeight.bold,
-      color: isDark ? Colors.lightBlue[200] : Colors.blue,
-    );
-
-    final labelStyle = TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-      color: isDark ? Colors.lightBlue[200] : Colors.blue,
-    );
-
-    final buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: isDark ? Colors.lightBlue[300] : Colors.lightBlue,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      textStyle: TextStyle(
-        fontFamily: 'Poppins',
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.white : Colors.blue,
-      ),
-    );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
-      child: Card(
-        elevation: 12,
-        margin:
-            EdgeInsets.symmetric(horizontal: isWide ? 300 : 24, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        color: theme.colorScheme.surfaceContainerHighest,
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Card(
+          color: isDark ? Colors.grey[900] : Colors.white,
+          elevation: isDark ? 0 : 4,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _isLogin ? 'Login' : 'Register',
-                    style: headingStyle,
-                  ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    key: const ValueKey('email'),
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: labelStyle,
-      prefixIcon: Icon(Icons.email,
-                          color: isDark
-                              ? Colors.lightBlue[200]
-                              : Colors.lightBlue),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                    'Welcome to Try On',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
-                    validator: (value) {
-                      if (value == null ||
-                          value.isEmpty ||
-                          !value.contains('@')) {
-                        return 'Please enter a valid email address.';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _email = value ?? '';
-                    },
                   ),
                   const SizedBox(height: 24),
+
+                  // Toggle Login/Register
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isLogin = true),
+                        child: Text(
+                          'Login',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: _isLogin
+                                ? Theme.of(context).colorScheme.primary
+                                : isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () => setState(() => _isLogin = false),
+                        child: Text(
+                          'Register',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: !_isLogin
+                                ? Theme.of(context).colorScheme.primary
+                                : isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Email
                   TextFormField(
-                    key: const ValueKey('password'),
-                    controller: _passwordController,
-                    obscureText: true,
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: labelStyle,
-      prefixIcon: Icon(Icons.lock,
-                          color: isDark
-                              ? Colors.lightBlue[200]
-                              : Colors.lightBlue),
+                      labelText: 'Email',
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    validator: (value) {
-                      if (value == null || value.length < 6) {
-                        return 'Password must be at least 6 characters long.';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _password = value ?? '';
-                    },
-                  ),
-                  if (!_isLogin) ...[
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      key: const ValueKey('confirm_password'),
-                      controller: _confirmPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        labelStyle: labelStyle,
-                        prefixIcon: Icon(Icons.lock_outline,
-                            color: isDark
-                                ? Colors.lightBlue[200]
-                                : Colors.lightBlue),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match.';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _trySubmit,
-                    style: buttonStyle,
-                    child: Text(_isLogin ? 'Login' : 'Register'),
+                    validator: (val) => val == null || !val.contains('@')
+                        ? 'Enter a valid email'
+                        : null,
                   ),
                   const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isLogin = !_isLogin;
-                      });
-                    },
-                    child: Text(
-                      _isLogin
-                          ? 'Create new account'
-                          : 'I already have an account',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? const Color.fromARGB(255, 255, 255, 255)
-                          : Colors.blue,
+
+                  // Password
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
+                      ),
                     ),
+                    validator: (val) => val == null || val.length < 6
+                        ? 'Password must be 6+ characters'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Confirm Password (only on Register)
+                  if (!_isLogin)
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirm,
+                      style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                      validator: (val) => val != _passwordController.text
+                          ? 'Passwords do not match'
+                          : null,
+                    ),
+                  if (!_isLogin) const SizedBox(height: 16),
+
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _trySubmit,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                    ),
+                    child: Text(
+                      _isLogin ? 'Login' : 'Register',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
