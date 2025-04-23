@@ -24,9 +24,9 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _handleLoginSuccess(String email) {
+  void _handleLoginSuccess(String name) {
     setState(() {
-      _loggedInUser = email;
+      _loggedInUser = name;
     });
   }
 

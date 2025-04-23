@@ -113,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
             // Welcome
             Text(
-              'Hello Sina',
+              'Hello ${widget.userEmail[0].toUpperCase()}${widget.userEmail.substring(1)}',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,

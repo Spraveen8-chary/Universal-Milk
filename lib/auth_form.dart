@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AuthForm extends StatefulWidget {
-  final void Function(String email) onLoginSuccess;
+  final void Function(String userName) onLoginSuccess;
 
   const AuthForm({super.key, required this.onLoginSuccess});
 
@@ -15,20 +17,67 @@ class _AuthFormState extends State<AuthForm> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  void _trySubmit() {
+  final String _baseUrl = 'http://192.168.1.7:5000';
+
+  void _trySubmit() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
-    widget.onLoginSuccess(email);
+    final password = _passwordController.text;
+
+    final url = Uri.parse('$_baseUrl/${_isLogin ? "login" : "register"}');
+
+    final body = _isLogin
+        ? {'email': email, 'password': password}
+        : {'username': name, 'email': email, 'password': password};
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      final resData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        // Successful login
+        final userName = resData['name'];
+        widget.onLoginSuccess(userName);
+      } else if (response.statusCode == 201) {
+        // Successful register — show message & switch to login
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(resData['message'] ?? 'Registered')),
+        );
+        setState(() {
+          _isLogin = true; // Go to login screen
+        });
+      }
+
+      else {
+        _showError(resData['message'] ?? 'Something went wrong');
+      }
+    } catch (e) {
+      _showError('Could not connect to the server');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -45,8 +94,9 @@ class _AuthFormState extends State<AuthForm> {
         child: Card(
           color: isDark ? Colors.grey[900] : Colors.white,
           elevation: isDark ? 0 : 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Form(
@@ -102,16 +152,41 @@ class _AuthFormState extends State<AuthForm> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Email
+                  // Name field (only for register)
+                  if (!_isLogin)
+                    Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          validator: (val) => val == null || val.trim().isEmpty
+                              ? 'Please enter your name'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+
+                  // Email field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style:
-                        TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Email',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     validator: (val) => val == null || !val.contains('@')
                         ? 'Enter a valid email'
@@ -119,16 +194,18 @@ class _AuthFormState extends State<AuthForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Password
+                  // Password field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style:
-                        TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -137,7 +214,8 @@ class _AuthFormState extends State<AuthForm> {
                           color: Colors.grey,
                         ),
                         onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                     validator: (val) => val == null || val.length < 6
@@ -146,17 +224,19 @@ class _AuthFormState extends State<AuthForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Confirm Password (only on Register)
+                  // Confirm password (only for register)
                   if (!_isLogin)
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirm,
                       style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black),
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Confirm Password',
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureConfirm
@@ -165,7 +245,8 @@ class _AuthFormState extends State<AuthForm> {
                             color: Colors.grey,
                           ),
                           onPressed: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm),
+                            () => _obscureConfirm = !_obscureConfirm,
+                          ),
                         ),
                       ),
                       validator: (val) => val != _passwordController.text
@@ -179,9 +260,12 @@ class _AuthFormState extends State<AuthForm> {
                     onPressed: _trySubmit,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 14),
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
                     child: Text(
