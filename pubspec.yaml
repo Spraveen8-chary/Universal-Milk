@@ -13,6 +13,11 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  device_preview: ^1.1.0
+  google_sign_in: ^6.2.1
+  firebase_auth: ^4.17.6
+  firebase_core: ^2.25.5
+
 
 dev_dependencies:
   flutter_test:

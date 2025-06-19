@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class AuthForm extends StatefulWidget {
-  final void Function(String userName) onLoginSuccess;
+  final void Function(String userName, String email) onLoginSuccess;
 
   const AuthForm({super.key, required this.onLoginSuccess});
 
@@ -22,7 +22,10 @@ class _AuthFormState extends State<AuthForm> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final String _baseUrl = 'http://192.168.1.7:5000';
+  // final String _baseUrl = 'http://192.168.1.7:5000';  // We-Prints formula
+    final String _baseUrl = 'http://localhost:5000'; //Praveen
+
+  // final String _baseUrl = 'http://192.168.200.141:5000'; // Ganesh
 
   void _trySubmit() async {
     final isValid = _formKey.currentState!.validate();
@@ -46,11 +49,13 @@ class _AuthFormState extends State<AuthForm> {
       );
 
       final resData = json.decode(response.body);
-
+      print("resDate : " + resData);
       if (response.statusCode == 200) {
         // Successful login
-        final userName = resData['name'];
-        widget.onLoginSuccess(userName);
+        final userName = resData['username'];
+        final email = resData['email'];
+        print(userName + email);
+        widget.onLoginSuccess(userName, email);
       } else if (response.statusCode == 201) {
         // Successful register — show message & switch to login
         ScaffoldMessenger.of(context).showSnackBar(
@@ -104,7 +109,7 @@ class _AuthFormState extends State<AuthForm> {
               child: Column(
                 children: [
                   Text(
-                    'Welcome to Try On',
+                    '\tWelcome to \nUniversal Milk',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,

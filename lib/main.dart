@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
-import 'auth_form.dart';
-import 'home_screen.dart';
-
-void main() {
-  runApp(const MyApp());
+import 'screens/auth_form.dart';
+import 'screens/home_screen.dart';
+// import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+import 'package:device_preview/device_preview.dart';
+ 
+void main() async {
+  runApp(
+    DevicePreview(
+      enabled: !kReleaseMode, // ✅ Enable only for debug mode
+      builder: (context) => const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -15,7 +23,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.light;
-  String? _loggedInUser;
+  String? _userName;
+  String? _userEmail;
 
   void _toggleTheme() {
     setState(() {
@@ -24,62 +33,119 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _handleLoginSuccess(String name) {
+  void _handleLoginSuccess(String name, String email) {
     setState(() {
-      _loggedInUser = name;
+      _userName = name;
+      _userEmail = email;
     });
   }
 
   void _handleLogout() {
     setState(() {
-      _loggedInUser = null;
+      _userName = null;
+      _userEmail = null;
     });
   }
 
-  final ThemeData lightTheme = ThemeData(
-    brightness: Brightness.light,
-    fontFamily: 'Poppins',
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFFB98068), // warm earthy brown
-      brightness: Brightness.light,
-    ),
-    scaffoldBackgroundColor: Color(0xFFF7F5F2),
-    useMaterial3: true,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFF3EDE7),
-      foregroundColor: Colors.black87,
-      elevation: 0,
-    ),
-  );
+  void _showProfileDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${_userName ?? "N/A"}'),
+            Text('Email: ${_userEmail ?? "N/A"}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  final ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    fontFamily: 'Poppins',
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFFE1AD7E), // warm light caramel
-      brightness: Brightness.dark,
-    ),
-    scaffoldBackgroundColor: Color(0xFF1C1C1C),
-    useMaterial3: true,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF2A2A2A),
-      foregroundColor: Colors.white,
-      elevation: 0,
-    ),
-  );
+  void _showAppearanceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Appearance'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Light Mode'),
+              value: ThemeMode.light,
+              groupValue: _themeMode,
+              onChanged: (mode) {
+                setState(() => _themeMode = mode!);
+                Navigator.pop(context);
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Dark Mode'),
+              value: ThemeMode.dark,
+              groupValue: _themeMode,
+              onChanged: (mode) {
+                setState(() => _themeMode = mode!);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Try On',
+      title: 'Universal Milk',
       debugShowCheckedModeBanner: false,
-      theme: lightTheme,
-      darkTheme: darkTheme,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        fontFamily: 'Poppins',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFB98068),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        fontFamily: 'Poppins',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFE1AD7E),
+          brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF1C1C1C),
+        useMaterial3: true,
+      ),
       themeMode: _themeMode,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Try On'),
+          title: const Text('Universal Milk'),
           actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.account_circle),
+              onSelected: (value) {
+                if (value == 'profile') {
+                  _showProfileDialog(context);
+                } else if (value == 'appearance') {
+                  _showAppearanceDialog(context);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'profile', child: Text('Profile')),
+                const PopupMenuItem(
+                    value: 'appearance', child: Text('Appearance')),
+              ],
+            ),
             IconButton(
               icon: Icon(
                 _themeMode == ThemeMode.light
@@ -91,12 +157,9 @@ class _MyAppState extends State<MyApp> {
             ),
           ],
         ),
-        body: _loggedInUser == null
+        body: _userEmail == null
             ? AuthForm(onLoginSuccess: _handleLoginSuccess)
-            : HomeScreen(
-                userEmail: _loggedInUser!,
-                onLogout: _handleLogout,
-              ),
+            : HomeScreen(userEmail: _userEmail!, onLogout: _handleLogout),
       ),
     );
   }
